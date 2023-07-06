@@ -1,43 +1,41 @@
-from typing import Union
-
 from fastapi import FastAPI
-from fastapi import APIRouter, Body, Request, Response, HTTPException, status
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import dotenv_values
-from pymongo import MongoClient
 from routers import booksRouter
+from database.db import ping_server
 
 config = dotenv_values(".env")
+origins = [config["CORS_ORIGIN"]]
 app = FastAPI()
-app.include_router(booksRouter.router)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(booksRouter.router, prefix="/books")
 
 
 @app.on_event("startup")
-def startup_db_client():
-    app.mongodb_client = MongoClient(config["DB_URI"])
-    app.database = app.mongodb_client[config["DB_NAME"]]
-    print("Connected to the MongoDB database!")
+async def startup_db_client():
+    app.db = await ping_server(config["DB_URI"])
 
 
 @app.on_event("shutdown")
 def shutdown_db_client():
-    app.mongodb_client.close()
+    pass
 
 
 @app.get("/")
 def root():
-    return {
-        "sucess": True,
-        "message": "Server running !",
-        "errors": [],
-        "data": {}
-    }
-
-
-@app.get("/items/{item_id}")
-def read_item(request: Request, item_id: int, q: str | None = None):
-
-    # docs = conn.analystai.test.find({})
-    # print([doc for doc in docs])
-    docs = request.app.database.test.find({})
-    print([doc for doc in docs])
-    return {"item_id": item_id, "q": q}
+    return JSONResponse(
+        status_code=200,
+        content={
+            "sucess": True,
+            "message": "Server running !",
+            "errors": [],
+            "data": {"db": []},
+        },
+    )
