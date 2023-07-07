@@ -1,21 +1,20 @@
-from database.db import conn
-
-# last resort connect directly from here
+from utils.util import ObjIDParser
 from models.bookModel import Book
 
 
-async def get_all_books(db):
+async def get_all_books_serv(db):
     books = []
     cur = db.books.find({})
     async for doc in cur:
-        books.append(Book(**doc))
+        books.append(ObjIDParser(Book(**doc)))
     return books
 
 
-async def create_book(db, book):
+async def create_book_serv(db, book):
     doc = book
     res = await db.books.insert_one(doc)
-    return doc
+    print(res)
+    return ObjIDParser(Book(**doc))
 
 
 async def update_book(db, id, book):
